@@ -7,8 +7,11 @@ import jakarta.servlet.http.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class HttpServletRequestImpl implements HttpServletRequest{
 
@@ -214,8 +217,30 @@ public class HttpServletRequestImpl implements HttpServletRequest{
     }
 
     @Override
-    public String getParameter(String s) {
-        return "";
+    public String getParameter(String name) {
+        String query = this.exchangeRequest.getRequestURI().getRawQuery();
+        if(query != null){
+            Map<String, String> params = parseQuery(query);
+            return params.get(name);
+        }
+        return null;
+    }
+
+    Map<String, String> parseQuery(String query) {
+        if (query == null || query.isEmpty()) {
+            return Map.of();
+        }
+        String[] ss = Pattern.compile("&").split(query);
+        Map<String, String> map = new HashMap<>();
+        for (String s : ss) {
+            int n = s.indexOf('=');
+            if (n >= 1) {
+                String key = s.substring(0, n);
+                String value = s.substring(n + 1);
+                map.putIfAbsent(key, URLDecoder.decode(value, StandardCharsets.UTF_8));
+            }
+        }
+        return map;
     }
 
     @Override
