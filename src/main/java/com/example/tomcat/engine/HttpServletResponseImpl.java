@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,22 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     public HttpServletResponseImpl(HttpExchangeResponse exchangeResponse){
         this.exchangeResponse = exchangeResponse;
+    }
+
+    @Override
+    public PrintWriter getWriter() throws IOException {
+        this.exchangeResponse.sendResponseHeaders(200, 0);
+        return new PrintWriter(this.exchangeResponse.getResponseBody(), true, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public void setContentType(String type) {
+        setHeader("Content-Type", type);
+    }
+
+    @Override
+    public void setHeader(String name, String value) {
+        this.exchangeResponse.getResponseHeaders().set(name, value);
     }
 
     @Override
@@ -61,11 +78,6 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     @Override
     public void addDateHeader(String s, long l) {
-
-    }
-
-    @Override
-    public void setHeader(String s, String s1) {
 
     }
 
@@ -125,11 +137,6 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     }
 
     @Override
-    public PrintWriter getWriter() throws IOException {
-        return null;
-    }
-
-    @Override
     public void setCharacterEncoding(String s) {
 
     }
@@ -141,11 +148,6 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     @Override
     public void setContentLengthLong(long l) {
-
-    }
-
-    @Override
-    public void setContentType(String s) {
 
     }
 
