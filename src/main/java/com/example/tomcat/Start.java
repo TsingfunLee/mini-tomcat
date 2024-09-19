@@ -21,6 +21,6 @@ public class Start {
             logger.error(e.getMessage(), e);
         }
 
-        logger.info("http server wat shutdown");
+        logger.info("http server was shutdown");
     }
 }
