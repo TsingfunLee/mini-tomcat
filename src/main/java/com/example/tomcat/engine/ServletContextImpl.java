@@ -30,6 +30,9 @@ public class ServletContextImpl implements ServletContext {
     // 处理HTTP
     public void process(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         String path = request.getRequestURI();
+        if(path.equals("/favicon.icon")){
+            return;
+        }
         Servlet servlet = null;
         for (ServletMapping mapping : this.servletMappings) {
             if (mapping.matches(path)) {

@@ -20,4 +20,9 @@ public class IndexServlet extends HttpServlet {
         pw.write(html);
         pw.close();
     }
+
+    @Override
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException{
+        super.service(request, response);
+    }
 }

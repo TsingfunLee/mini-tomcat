@@ -12,15 +12,33 @@ public abstract class AbstractMapping implements Comparable<AbstractMapping> {
     }
 
     public Boolean matches(String uri){
-        return pattern.matcher(uri).matches();
+        return this.pattern.matcher(uri).matches();
+//        return true;
     }
 
-    private Pattern buildPattern(String url){
-        String regex = "^" + url.replaceAll("\\*", ".*") + "$";
-        regex = regex.replaceAll("([^a-zA-z0-9.*])", "\\\\$1");
-
-        return Pattern.compile(regex);
+    private Pattern buildPattern(String urlPattern){
+        StringBuilder sb = new StringBuilder(urlPattern.length() + 16);
+        sb.append('^');
+        for (int i = 0; i < urlPattern.length(); i++) {
+            char ch = urlPattern.charAt(i);
+            if (ch == '*') {
+                sb.append(".*");
+            } else if (ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9') {
+                sb.append(ch);
+            } else {
+                sb.append('\\').append(ch);
+            }
+        }
+        sb.append('$');
+        return Pattern.compile(sb.toString());
     }
+
+//    private Pattern buildPattern(String url){
+//        String regex = "^" + url.replaceAll("\\*", ".*") + "$";
+//        regex = regex.replaceAll("([^a-zA-z0-9.*])", "\\\\$1");
+//
+//        return Pattern.compile(regex);
+//    }
 
     @Override
     public int compareTo(AbstractMapping other){
