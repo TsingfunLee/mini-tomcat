@@ -2,6 +2,8 @@ package com.example.tomcat.connector;
 
 import com.example.tomcat.engine.HttpServletRequestImpl;
 import com.example.tomcat.engine.HttpServletResponseImpl;
+import com.example.tomcat.engine.ServletContextImpl;
+import com.example.tomcat.engine.servlet.IndexServlet;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class HttpConnector implements HttpHandler, AutoCloseable {
 
@@ -19,7 +22,11 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
 
     final HttpServer httpServer;
 
+    final ServletContextImpl servletContext;
+
     public HttpConnector() throws IOException {
+        this.servletContext = new ServletContextImpl();
+        this.servletContext.initialize(List.of(IndexServlet.class));
         String host = "0.0.0.0";
         int port = 5050;
         this.httpServer = HttpServer.create(new InetSocketAddress(host, port), 0, "/", this);
@@ -35,19 +42,10 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
         var response = new HttpServletResponseImpl(adapter);
         // process:
         try {
-            process(request, response);
+            this.servletContext.process(request, response);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-    }
-
-    private void process(HttpServletRequestImpl request, HttpServletResponseImpl response) throws ServletException, IOException {
-        String name = request.getParameter("name");
-        String html = "<h1>Hello, " + (name == null ? "world" : name) + ".</h1>";
-        response.setContentType("text/html");
-        PrintWriter pw = response.getWriter();
-        pw.write(html);
-        pw.close();
     }
 
     @Override

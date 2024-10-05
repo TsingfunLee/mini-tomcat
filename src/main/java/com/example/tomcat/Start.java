@@ -9,7 +9,7 @@ public class Start {
 
     public static void main(String[] args) throws Exception {
         try(HttpConnector connector = new HttpConnector()){
-           for(;;){
+           while (true){
                try{
                    Thread.sleep(1000);
                }catch (InterruptedException e){

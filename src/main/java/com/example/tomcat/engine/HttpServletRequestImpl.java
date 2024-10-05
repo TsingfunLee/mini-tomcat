@@ -103,7 +103,7 @@ public class HttpServletRequestImpl implements HttpServletRequest{
 
     @Override
     public String getRequestURI() {
-        return "";
+        return this.exchangeRequest.getRequestURI().getPath();
     }
 
     @Override
