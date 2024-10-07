@@ -58,7 +58,7 @@ public class HttpServletRequestImpl implements HttpServletRequest{
 
     @Override
     public String getMethod() {
-        return "";
+        return this.exchangeRequest.getRequestMethod();
     }
 
     @Override
