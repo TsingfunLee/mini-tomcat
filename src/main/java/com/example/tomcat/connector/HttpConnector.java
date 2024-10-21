@@ -3,6 +3,7 @@ package com.example.tomcat.connector;
 import com.example.tomcat.engine.HttpServletRequestImpl;
 import com.example.tomcat.engine.HttpServletResponseImpl;
 import com.example.tomcat.engine.ServletContextImpl;
+import com.example.tomcat.engine.servlet.HelloServlet;
 import com.example.tomcat.engine.servlet.IndexServlet;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -26,7 +27,7 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
 
     public HttpConnector() throws IOException {
         this.servletContext = new ServletContextImpl();
-        this.servletContext.initialize(List.of(IndexServlet.class));
+        this.servletContext.initialize(List.of(IndexServlet.class, HelloServlet.class));
         String host = "0.0.0.0";
         int port = 5050;
         this.httpServer = HttpServer.create(new InetSocketAddress(host, port), 0, "/", this);

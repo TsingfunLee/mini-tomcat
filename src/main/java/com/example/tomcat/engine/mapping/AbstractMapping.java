@@ -16,7 +16,7 @@ public abstract class AbstractMapping implements Comparable<AbstractMapping> {
 //        return true;
     }
 
-    private Pattern buildPattern(String urlPattern){
+    Pattern buildPattern(String urlPattern){
         StringBuilder sb = new StringBuilder(urlPattern.length() + 16);
         sb.append('^');
         for (int i = 0; i < urlPattern.length(); i++) {
