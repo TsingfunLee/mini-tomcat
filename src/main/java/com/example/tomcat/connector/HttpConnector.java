@@ -3,17 +3,17 @@ package com.example.tomcat.connector;
 import com.example.tomcat.engine.HttpServletRequestImpl;
 import com.example.tomcat.engine.HttpServletResponseImpl;
 import com.example.tomcat.engine.ServletContextImpl;
+import com.example.tomcat.engine.filter.HelloFilter;
 import com.example.tomcat.engine.servlet.HelloServlet;
 import com.example.tomcat.engine.servlet.IndexServlet;
+import com.example.tomcat.engine.filter.LogFilter;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
-import jakarta.servlet.ServletException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.List;
 
@@ -27,7 +27,8 @@ public class HttpConnector implements HttpHandler, AutoCloseable {
 
     public HttpConnector() throws IOException {
         this.servletContext = new ServletContextImpl();
-        this.servletContext.initialize(List.of(IndexServlet.class, HelloServlet.class));
+        this.servletContext.initServlets(List.of(IndexServlet.class, HelloServlet.class));
+        this.servletContext.initFilters(List.of(LogFilter.class, HelloFilter.class));
         String host = "0.0.0.0";
         int port = 5050;
         this.httpServer = HttpServer.create(new InetSocketAddress(host, port), 0, "/", this);

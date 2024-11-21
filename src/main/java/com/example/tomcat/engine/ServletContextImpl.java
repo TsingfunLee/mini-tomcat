@@ -1,8 +1,10 @@
 package com.example.tomcat.engine;
 
+import com.example.tomcat.engine.mapping.FilterMapping;
 import com.example.tomcat.engine.mapping.ServletMapping;
 import com.example.tomcat.utils.AnnoUtils;
 import jakarta.servlet.*;
+import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.descriptor.JspConfigDescriptor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +24,13 @@ public class ServletContextImpl implements ServletContext {
     final Logger logger = LoggerFactory.getLogger(getClass());
 
     final List<ServletMapping> servletMappings = new ArrayList<>();
+    final List<FilterMapping> filterMappings = new ArrayList<>();
 
     private final Map<String, ServletRegistrationImpl> servletRegistrations = new HashMap<>();
+    private final Map<String, FilterRegistrationImpl> filterRegistrations = new HashMap<>();
 
     final Map<String, Servlet> nameToServlet = new HashMap<>();
+    final Map<String, Filter> nameToFilters = new HashMap<>();
 
     // 处理HTTP
     public void process(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
@@ -43,10 +48,28 @@ public class ServletContextImpl implements ServletContext {
             pw.close();
             return;
         }
-        servlet.service(request, response);
+        // search filter:
+        List<Filter> enabledFilters = new ArrayList<>();
+        for(FilterMapping mapping: this.filterMappings){
+            if(mapping.matches(path)){
+                enabledFilters.add(mapping.filter);
+            }
+        }
+        Filter[] filters = enabledFilters.toArray(Filter[]::new);
+        logger.atDebug().log("process {} by filter {}, servlet {}", path, Arrays.toString(filters), servlet);
+        FilterChain chain = new FilterChainImpl(filters, servlet);
+        try{
+            chain.doFilter(request, response);
+        }catch (ServletException e){
+            logger.error(e.getMessage(), e);
+            throw new IOException(e);
+        } catch(IOException e){
+            logger.error(e.getMessage(), e);
+            throw e;
+        }
     }
 
-    public void initialize(List<Class<?>> servletClass) {
+    public void initServlets(List<Class<?>> servletClass) {
         for (Class<?> c : servletClass) {
             WebServlet ws = c.getAnnotation(WebServlet.class);
             if (ws != null) {
@@ -74,6 +97,35 @@ public class ServletContextImpl implements ServletContext {
         }
 
         Collections.sort(this.servletMappings);
+    }
+
+    public void initFilters(List<Class<?>> filterClasses) {
+        for (Class<?> c : filterClasses) {
+            WebFilter wf = c.getAnnotation(WebFilter.class);
+            if (wf != null) {
+                logger.info("auto register @WebFilter: {}", c.getName());
+                @SuppressWarnings("unchecked")
+                Class<? extends Filter> clazz = (Class<? extends Filter>) c;
+                FilterRegistration.Dynamic registration = this.addFilter(AnnoUtils.getFilterName(clazz), clazz);
+                registration.addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), true, AnnoUtils.getFilterUrlPatterns(clazz));
+                registration.setInitParameters(AnnoUtils.getFilterInitParams(clazz));
+            }
+        }
+
+        // init filters
+        for(String name : this.filterRegistrations.keySet()){
+            var registration = this.filterRegistrations.get(name);
+            try{
+                registration.filter.init(registration.getFilterConfig());
+                this.nameToFilters.put(name, registration.filter);
+                for(String urlPattern : registration.getUrlPatternMappings()){
+                    this.filterMappings.add(new FilterMapping(urlPattern, registration.filter));
+                }
+                registration.initialized = true;
+            } catch (ServletException e ){
+                logger.error("init filter failed: " + name + " / " + registration.filter.getClass().getName(), e);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -233,7 +285,7 @@ public class ServletContextImpl implements ServletContext {
 
     @Override
     public ServletRegistration.Dynamic addServlet(String name, Class<? extends Servlet> clazz) {
-        if(clazz == null){
+        if (clazz == null) {
             throw new IllegalArgumentException("class is null");
         }
         Servlet servlet = null;
@@ -247,10 +299,10 @@ public class ServletContextImpl implements ServletContext {
 
     @Override
     public ServletRegistration.Dynamic addServlet(String name, Servlet servlet) {
-        if(name == null){
+        if (name == null) {
             throw new IllegalArgumentException("name is null");
         }
-        if(servlet == null){
+        if (servlet == null) {
             throw new IllegalArgumentException("servlet is null");
         }
         var registration = new ServletRegistrationImpl(this, name, servlet);
@@ -279,19 +331,49 @@ public class ServletContextImpl implements ServletContext {
         return Map.copyOf(this.servletRegistrations);
     }
 
+    // 根据Class Name添加Filter
     @Override
-    public FilterRegistration.Dynamic addFilter(String s, String s1) {
-        return null;
+    public FilterRegistration.Dynamic addFilter(String name, String className) {
+        if (className == null || className.isEmpty()) {
+            throw new IllegalArgumentException("class name is null or empty.");
+        }
+        Filter filter = null;
+        try {
+            Class<? extends Filter> clazz = createInstance(className);
+            filter = createInstance(clazz);
+        } catch (ServletException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return addFilter(name, filter);
     }
 
+    // 根据Filter实例添加Filter
     @Override
-    public FilterRegistration.Dynamic addFilter(String s, Filter filter) {
-        return null;
+    public FilterRegistration.Dynamic addFilter(String name, Filter filter) {
+        if (name == null) {
+            throw new IllegalArgumentException("name is null.");
+        }
+        if (filter == null) {
+            throw new IllegalArgumentException("filter is null");
+        }
+        var registration = new FilterRegistrationImpl(this, name, filter);
+        this.filterRegistrations.put(name, registration);
+        return registration;
     }
 
+    // 根据Class添加Filter
     @Override
-    public FilterRegistration.Dynamic addFilter(String s, Class<? extends Filter> aClass) {
-        return null;
+    public FilterRegistration.Dynamic addFilter(String name, Class<? extends Filter> clazz) {
+        if (clazz == null) {
+            throw new IllegalArgumentException("class is null.");
+        }
+        Filter filter = null;
+        try {
+            filter = createInstance(clazz);
+        } catch (ServletException e) {
+            throw new RuntimeException(e);
+        }
+        return addFilter(name, filter);
     }
 
     @Override

@@ -16,8 +16,12 @@ public class HttpServletResponseImpl implements HttpServletResponse {
 
     final HttpExchangeResponse exchangeResponse;
 
+    int status = 200;
+    String contentType;
+
     public HttpServletResponseImpl(HttpExchangeResponse exchangeResponse){
         this.exchangeResponse = exchangeResponse;
+        this.setContentType("text/html");
     }
 
     @Override
@@ -29,6 +33,7 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     @Override
     public void setContentType(String type) {
         setHeader("Content-Type", type);
+        this.contentType = type;
     }
 
     @Override
@@ -57,13 +62,16 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     }
 
     @Override
-    public void sendError(int i, String s) throws IOException {
-
+    public void sendError(int sc, String msg) throws IOException {
+        this.status = sc;
+        PrintWriter pw = getWriter();
+        pw.write(String.format("<h1>%d %s</h1>", sc, msg));
+        pw.close();
     }
 
     @Override
-    public void sendError(int i) throws IOException {
-
+    public void sendError(int sc) throws IOException {
+        sendError(sc, "Error");
     }
 
     @Override
